@@ -1,13 +1,12 @@
 --[[
-    MobileHub v1.0
-    Script leve para Blox Fruits
-    Interface estilo Redz | Feito para funcionar em celular
+    MobileHub v2
+    Menu leve estilo Redz (sem biblioteca externa)
     Criado por: nyxbloxfruits
 ]]
 
 repeat task.wait() until game:IsLoaded()
 
--- Proteção contra kick simples
+-- Proteção contra kick
 pcall(function()
     local mt = getrawmetatable(game)
     setreadonly(mt, false)
@@ -21,114 +20,73 @@ pcall(function()
     end)
 end)
 
--- UI Library (Redz Style Simplificado)
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/BaconHax/ui/main/simple.lua"))()
-local Window = Library:Window("MobileHub", Color3.fromRGB(255, 87, 87), Enum.KeyCode.RightControl)
+-- Interface simples embutida
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "MobileHub"
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0, 270, 0, 300)
+Main.Position = UDim2.new(0.5, -135, 0.5, -150)
+Main.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Main.BorderSizePixel = 0
+
+local Title = Instance.new("TextLabel", Main)
+Title.Text = "MobileHub"
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(255, 87, 87)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 22
+
+local Dropdown = Instance.new("TextBox", Main)
+Dropdown.PlaceholderText = "Nome do NPC (ex: Bandit)"
+Dropdown.Size = UDim2.new(1, -20, 0, 30)
+Dropdown.Position = UDim2.new(0, 10, 0, 50)
+Dropdown.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Dropdown.TextColor3 = Color3.new(1, 1, 1)
+Dropdown.TextSize = 14
+
+local Toggle = Instance.new("TextButton", Main)
+Toggle.Text = "Iniciar Farm"
+Toggle.Size = UDim2.new(1, -20, 0, 35)
+Toggle.Position = UDim2.new(0, 10, 0, 90)
+Toggle.BackgroundColor3 = Color3.fromRGB(255, 87, 87)
+Toggle.TextColor3 = Color3.new(1, 1, 1)
+Toggle.TextSize = 16
+Toggle.Font = Enum.Font.GothamBold
 
 -- Variáveis
-local SelectedMob = nil
-local AutoFarm = false
-local AutoChest = false
-local UseFastAttack = true
-local UseHaki = true
-local BringMobs = true
+local farming = false
+local selectedNPC = ""
+local player = game.Players.LocalPlayer
 
--- Funções úteis
-function getNearestMob(name)
-    for _, mob in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
-        if mob.Name == name and mob:FindFirstChild("HumanoidRootPart") and mob.Humanoid.Health > 0 then
-            return mob
-        end
-    end
-end
+-- Farm simples
+Toggle.MouseButton1Click:Connect(function()
+    farming = not farming
+    Toggle.Text = farming and "Parar Farm" or "Iniciar Farm"
+    selectedNPC = Dropdown.Text
+end)
 
-function toTarget(pos)
-    local ply = game.Players.LocalPlayer
-    if ply.Character and ply.Character:FindFirstChild("HumanoidRootPart") then
-        ply.Character.HumanoidRootPart.CFrame = pos
-    end
-end
-
-function attackTarget(target)
-    if UseFastAttack and target and target:FindFirstChild("HumanoidRootPart") then
-        local tool = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Tool")
-        if tool then
-            for i = 1, 3 do
-                tool:Activate()
-                wait(0.15)
-            end
-        end
-    end
-end
-
--- Farm Loop
 spawn(function()
     while task.wait(0.5) do
-        if AutoFarm and SelectedMob then
-            local mob = getNearestMob(SelectedMob)
-            if mob then
-                if UseHaki then
+        if farming and selectedNPC ~= "" then
+            for _, mob in pairs(workspace.Enemies:GetChildren()) do
+                if mob.Name == selectedNPC and mob:FindFirstChild("HumanoidRootPart") and mob:FindFirstChild("Humanoid") and mob.Humanoid.Health > 0 then
                     pcall(function()
-                        game:GetService("VirtualInputManager"):SendKeyEvent(true, "J", false, game)
+                        -- Teleportar e atacar
+                        local char = player.Character
+                        if char and char:FindFirstChild("HumanoidRootPart") then
+                            char.HumanoidRootPart.CFrame = mob.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0)
+                        end
+
+                        local tool = char and char:FindFirstChildOfClass("Tool")
+                        if tool then
+                            tool:Activate()
+                        end
                     end)
-                end
-                if BringMobs then
-                    toTarget(mob.HumanoidRootPart.CFrame + Vector3.new(0, 10, 0))
-                else
-                    toTarget(mob.HumanoidRootPart.CFrame + Vector3.new(5, 5, 5))
-                end
-                attackTarget(mob)
-            end
-        end
-    end
-end)
-
--- Farm de Baús
-spawn(function()
-    while task.wait(1) do
-        if AutoChest then
-            for _, chest in pairs(game:GetService("Workspace"):GetDescendants()) do
-                if chest:IsA("TouchTransmitter") and chest.Parent and chest.Parent:IsA("Model") and chest.Parent:FindFirstChild("TouchInterest") then
-                    toTarget(chest.Parent.CFrame + Vector3.new(0, 2, 0))
-                    wait(0.7)
+                    wait(0.5)
                 end
             end
         end
     end
-end)
-
--- Aba de Farm
-local farmTab = Window:Tab("Farm", "rbxassetid://11446959774")
-farmTab:Dropdown("Escolher NPC", {
-    "Bandit",
-    "Monkey",
-    "Gorilla",
-    "Pirate",
-    "Brute"
-}, function(v)
-    SelectedMob = v
-end)
-
-farmTab:Toggle("Ativar Farm", false, function(v)
-    AutoFarm = v
-end)
-
--- Aba de Baús
-local chestTab = Window:Tab("Baús", "rbxassetid://6031091002")
-chestTab:Toggle("Farm de Baús", false, function(v)
-    AutoChest = v
-end)
-
--- Aba de Configurações
-local configTab = Window:Tab("Configurações", "rbxassetid://6034509993")
-configTab:Toggle("Usar Haki", true, function(v)
-    UseHaki = v
-end)
-
-configTab:Toggle("Fast Attack", true, function(v)
-    UseFastAttack = v
-end)
-
-configTab:Toggle("Juntar Mobs", true, function(v)
-    BringMobs = v
-end)
+end
