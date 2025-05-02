@@ -11,5 +11,5 @@ getgenv().MobileHub_Config = {
     Creator = "nyxbloxfruits"
 }
 
--- Menu baseado no estilo Redz, mas com nome e autoria personalizados
+-- Chama o arquivo do menu (MobileUI.lua) que está na pasta 'Core'
 loadstring(game:HttpGet("https://raw.githubusercontent.com/nyxbloxfruits/MobileHub/main/Core/MobileUI.lua"))()
